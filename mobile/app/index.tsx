@@ -47,8 +47,10 @@ export default function Index() {
     setProfileEnabled(!!isLoaded && !!isSignedIn && tokenReady);
     refetch();
     if (!profile) {
-      console.log(profile);
       refetch();
+      console.log(profile);
+      console.log(user?.primaryEmailAddress?.emailAddress);
+      setProfileEnabled(!!isLoaded && !!isSignedIn && tokenReady);
     }
   }, [[user, isSignedIn, profile]]);
 
@@ -58,7 +60,7 @@ export default function Index() {
   }
 
   // ── 2. Not signed in → welcome / auth ─────────────────────────────────────
-  else if (!isSignedIn) {
+  if (!isSignedIn) {
     return <Redirect href="/welcome" />;
   }
 
@@ -67,7 +69,7 @@ export default function Index() {
   //  IMPORTANT: Do NOT redirect to onboarding here. A network blip would wipe
   //  the user's onboarding progress and recreate a duplicate profile. Instead,
   //  show a friendly retry screen so the user can try again.
-  else if (profileError) {
+  if (profileError) {
     return (
       <View
         style={{
@@ -105,17 +107,19 @@ export default function Index() {
   }
 
   // ── 6. 404 → no profile yet → onboarding ──────────────────────────────────
-  else if (!profile) {
+  if (!profile) {
     refetch();
-    if (!profile) {
+    console.log("User: ", user);
+    if (!profile && !user) {
       refetch();
       console.log(profile);
+    } else {
+      return <Redirect href="/(onboarding)/step-1" />;
     }
-    return <Redirect href="/(onboarding)/step-1" />;
   }
 
   // ── 7. Profile found but selfie not yet approved → verification ────────────
-  else if (profile.verificationStatus !== 'approved') {
+  if (profile?.verificationStatus !== 'approved') {
     return <Redirect href="/(verification)/selfie" />;
   }
 

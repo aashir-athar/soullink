@@ -47,23 +47,25 @@ export function useAuthBridge(): void {
   const getTokenRef = useRef(getToken);
   getTokenRef.current = getToken;
 
+  // Register synchronously on every render so the getter is in place before
+  // any child component fires its first request.
+  registerTokenGetter(async () => {
+    try {
+      const token = await getTokenRef.current();
+      if (token) {
+        // Signal to the rest of the app that a real token is available.
+        console.log("token:", token);
+
+        setTokenReady(true);
+      }
+      return token;
+    } catch {
+      return null;
+    }
+  });
+
   useEffect(() => {
-    if (isSignedIn) {
-      // Register synchronously on every render so the getter is in place before
-      // any child component fires its first request.
-      registerTokenGetter(async () => {
-        try {
-          const token = await getTokenRef.current();
-          if (token) {
-            // Signal to the rest of the app that a real token is available.
-            setTokenReady(true);
-          }
-          return token;
-        } catch {
-          return null;
-        }
-      });
-    } else {
+    if (!isSignedIn) {
       // Reset token-ready flag so after sign-out we start fresh.
       setTokenReady(false);
       disconnectSocket();
