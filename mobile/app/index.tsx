@@ -3,7 +3,8 @@
 // Flow:
 //   Not signed in                            → /welcome
 //   Signed in, token not yet ready           → loader  (JWT not yet produced from SecureStore)
-//   Signed in, profile loading / retrying    → loader
+//   Signed in, profile loading / fetching    → loader
+//   Signed in, query not yet run             → loader  (isFetched guard)
 //   Signed in, profile fetch errored (net)   → retry screen  ← NOT onboarding
 //   Signed in, no profile (404 → null)       → /(onboarding)/step-1
 //   Signed in, profile exists, not approved  → /(verification)/selfie
@@ -42,18 +43,25 @@ export default function Index() {
     isLoading: profileLoading,
     isFetching: profileFetching,
     isError: profileError,
+    // isFetched: true only after the query has completed at least once.
+    // This is the critical guard that prevents undefined (disabled query)
+    // from being treated as "no profile" and routing incorrectly.
+    isFetched: profileFetched,
     refetch,
   } = useMyProfile(profileEnabled);
 
-  // FIX 4: Dependency array was [[user, isSignedIn, profile]] — a double-nested
-  // array. React treats it as a single stable reference that never changes, so
-  // this effect never re-ran after the initial mount. Flattened to the correct
-  // form so the query re-enables as soon as Clerk and the token are ready.
+  // FIX (original): Dependency array was [[user, isSignedIn, profile]] — a
+  // double-nested array. React treats it as a single stable reference that
+  // never changes, so this effect never re-ran after the initial mount.
+  // Flattened to the correct form so the query re-enables as soon as Clerk
+  // and the token are ready.
   useEffect(() => {
     const enabled = !!isLoaded && !!isSignedIn && tokenReady;
     setProfileEnabled(enabled);
-    refetch();
-  }, [isLoaded, isSignedIn, user, tokenReady]); // ← flat array, no profile dep needed here
+    if (enabled) {
+      refetch();
+    }
+  }, [isLoaded, isSignedIn, tokenReady]);
 
   // ── 1. Clerk not yet initialised ──────────────────────────────────────────
   if (!isLoaded) {
@@ -65,8 +73,13 @@ export default function Index() {
     return <Redirect href="/welcome" />;
   }
 
-  // ── 3. Token not yet ready or profile still loading ───────────────────────
-  if (!tokenReady || profileLoading || profileFetching) {
+  // ── 3. Token not yet ready, or profile query still in flight ──────────────
+  // Also blocks if the query hasn't been run at all yet (isFetched=false).
+  // This is the key guard: it prevents the component from making a routing
+  // decision based on `undefined` (query disabled) vs `null` (real 404).
+  // Without this, a race between tokenReady becoming true and the query
+  // completing could briefly expose the "no profile" branch with undefined data.
+  if (!tokenReady || profileLoading || profileFetching || !profileFetched) {
     return <SoulLinkLoader label="Loading your profile…" />;
   }
 
@@ -113,10 +126,8 @@ export default function Index() {
   }
 
   // ── 5. 404 → no profile yet → onboarding ──────────────────────────────────
-  // FIX 5: Previously had a broken if (!profile && !user) branch that called
-  // refetch() during render (side-effect in render = bad) and had no return
-  // statement, causing the component to silently render nothing. Now clean and
-  // unconditional: null profile always → onboarding.
+  // At this point isFetched=true, so null means the backend genuinely returned
+  // a 404 — not "query hasn't run yet". Safe to redirect to onboarding.
   if (!profile) {
     return <Redirect href="/(onboarding)/step-1" />;
   }
