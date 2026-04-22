@@ -1,0 +1,30 @@
+services:
+  - type: web
+    name: soullink-api
+    env: node
+    region: singapore          # closest to Pakistan / South Asia
+    plan: free                 # free tier (spins down after inactivity)
+    buildCommand: npm install
+    startCommand: node src/server.js
+    healthCheckPath: /health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 4000
+      - key: MONGODB_URI
+        sync: false            # set manually in Render dashboard
+      - key: CLERK_SECRET_KEY
+        sync: false            # set manually — NEVER commit this
+      - key: CLERK_PUBLISHABLE_KEY
+        sync: false            # comma-separated list of your frontend origins
+      - key: CLERK_JWT_KEY
+        value: false
+        key: CLOUDINARY_CLOUD_NAME
+        sync: false            # set manually — NEVER commit this
+      - key: CLOUDINARY_API_KEY
+        sync: false            # comma-separated list of your frontend origins
+      - key: CLOUDINARY_API_SECRET
+        value: false
+      - key: ADMIN_SECRET_KEY
+        value: false
