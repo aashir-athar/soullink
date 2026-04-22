@@ -1,5 +1,7 @@
 // backend/src/index.ts — Soullink Express 5 + Socket.io server
 
+//removed Cors for testing
+
 import express from 'express';
 import { createServer } from 'http';
 import { Server } from 'socket.io';
@@ -27,6 +29,7 @@ config();
 
 const app = express();
 const httpServer = createServer(app);
+
 
 // ─── Socket.io ───────────────────────────────────────────────────────────────
 const io = new Server(httpServer, {
