@@ -46,7 +46,11 @@ export default function Index() {
   useEffect(() => {
     setProfileEnabled(!!isLoaded && !!isSignedIn && tokenReady);
     refetch();
-  }, [[user, isSignedIn]]);
+    if (!profile) {
+      console.log(profile);
+      refetch();
+    }
+  }, [[user, isSignedIn, profile]]);
 
   // ── 1. Clerk not yet initialised ──────────────────────────────────────────
   if (!isLoaded) {
@@ -54,7 +58,7 @@ export default function Index() {
   }
 
   // ── 2. Not signed in → welcome / auth ─────────────────────────────────────
-  if (!isSignedIn) {
+  else if (!isSignedIn) {
     return <Redirect href="/welcome" />;
   }
 
@@ -63,7 +67,7 @@ export default function Index() {
   //  IMPORTANT: Do NOT redirect to onboarding here. A network blip would wipe
   //  the user's onboarding progress and recreate a duplicate profile. Instead,
   //  show a friendly retry screen so the user can try again.
-  if (profileError) {
+  else if (profileError) {
     return (
       <View
         style={{
@@ -101,16 +105,23 @@ export default function Index() {
   }
 
   // ── 6. 404 → no profile yet → onboarding ──────────────────────────────────
-  if (!profile) {
+  else if (!profile) {
+    refetch();
+    if (!profile) {
+      refetch();
+      console.log(profile);
+    }
     return <Redirect href="/(onboarding)/step-1" />;
   }
 
   // ── 7. Profile found but selfie not yet approved → verification ────────────
-  if (profile.verificationStatus !== 'approved') {
+  else if (profile.verificationStatus !== 'approved') {
     return <Redirect href="/(verification)/selfie" />;
   }
 
   // ── 8. All checks passed → main app ───────────────────────────────────────
-  return <Redirect href="/(tabs)" />;
+  else {
+    return <Redirect href="/(tabs)" />;
+  }
 
 }

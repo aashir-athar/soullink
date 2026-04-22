@@ -30,10 +30,6 @@ const httpServer = createServer(app);
 
 // ─── Socket.io ───────────────────────────────────────────────────────────────
 const io = new Server(httpServer, {
-  cors: {
-    origin: process.env['ALLOWED_ORIGINS']?.split(',') ?? ['*'],
-    credentials: true,
-  },
   transports: ['websocket', 'polling'],
   connectionStateRecovery: {
     maxDisconnectionDuration: 2 * 60 * 1000,
@@ -42,26 +38,6 @@ const io = new Server(httpServer, {
 });
 
 registerSocketHandlers(io);
-
-// ─── CORS config ─────────────────────────────────────────────────────────────
-const allowedOrigins = process.env['ALLOWED_ORIGINS']?.split(',') ?? [];
-
-const corsOptions: cors.CorsOptions = {
-  origin: allowedOrigins.length > 0 ? allowedOrigins : '*',
-  credentials: true,
-  methods: ['GET', 'POST', 'PATCH', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization'],
-};
-
-// ─── Core middleware ──────────────────────────────────────────────────────────
-app.use(helmet({ contentSecurityPolicy: false }));
-app.use(compression());
-app.use(cors(corsOptions));
-app.use(express.json({ limit: '10mb' }));
-app.use(express.urlencoded({ extended: true, limit: '10mb' }));
-app.use(
-  morgan('combined', { stream: { write: (msg) => logger.info(msg.trim()) } })
-);
 
 // ─── Clerk: verify token and populate req.auth() on every request ─────────────
 // clerkMiddleware must run before any route that calls getAuth() or attachUser().

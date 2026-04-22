@@ -13,7 +13,7 @@ export default function AuthLayout() {
 
   // When already signed in, go to index which handles onboarding/profile check
   if (isSignedIn) {
-    return <Redirect href="/" />;
+    return <Redirect href="/(tabs)" />;
   }
 
   return (
