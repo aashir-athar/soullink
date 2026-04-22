@@ -33,7 +33,9 @@ export default function Index() {
   // Without condition 3, on a cold-start the query fires while Clerk is still
   // restoring the session from SecureStore, gets a 401, and the retry storm
   // begins before the token is even available.
-  const [profileEnabled, setProfileEnabled] = useState(!!isLoaded && !!isSignedIn && tokenReady);
+  const [profileEnabled, setProfileEnabled] = useState(
+    !!isLoaded && !!isSignedIn && tokenReady
+  );
 
   const {
     data: profile,
@@ -43,16 +45,15 @@ export default function Index() {
     refetch,
   } = useMyProfile(profileEnabled);
 
+  // FIX 4: Dependency array was [[user, isSignedIn, profile]] — a double-nested
+  // array. React treats it as a single stable reference that never changes, so
+  // this effect never re-ran after the initial mount. Flattened to the correct
+  // form so the query re-enables as soon as Clerk and the token are ready.
   useEffect(() => {
-    setProfileEnabled(!!isLoaded && !!isSignedIn && tokenReady);
+    const enabled = !!isLoaded && !!isSignedIn && tokenReady;
+    setProfileEnabled(enabled);
     refetch();
-    if (!profile) {
-      refetch();
-      console.log(profile);
-      console.log(user?.primaryEmailAddress?.emailAddress);
-      setProfileEnabled(!!isLoaded && !!isSignedIn && tokenReady);
-    }
-  }, [[user, isSignedIn, profile]]);
+  }, [isLoaded, isSignedIn, user, tokenReady]); // ← flat array, no profile dep needed here
 
   // ── 1. Clerk not yet initialised ──────────────────────────────────────────
   if (!isLoaded) {
@@ -64,7 +65,12 @@ export default function Index() {
     return <Redirect href="/welcome" />;
   }
 
-  // ── 5. Hard failure: network error, 5xx, or exhausted retries ─────────────
+  // ── 3. Token not yet ready or profile still loading ───────────────────────
+  if (!tokenReady || profileLoading || profileFetching) {
+    return <SoulLinkLoader label="Loading your profile…" />;
+  }
+
+  // ── 4. Hard failure: network error, 5xx, or exhausted retries ─────────────
   //
   //  IMPORTANT: Do NOT redirect to onboarding here. A network blip would wipe
   //  the user's onboarding progress and recreate a duplicate profile. Instead,
@@ -81,12 +87,12 @@ export default function Index() {
           gap: 20,
         }}
       >
-        <Text style={{ fontSize: 40 }}>&#9829;</Text>
+        <Text style={{ fontSize: 40 }}>♥</Text>
         <Text variant="title2" style={{ textAlign: 'center' }}>
           Connection issue
         </Text>
         <Text variant="body" tone="secondary" style={{ textAlign: 'center', lineHeight: 22 }}>
-          We couldn&apos;t reach the server.{'\n'}Please check your connection and try again.
+          We couldn't reach the server.{'\n'}Please check your connection and try again.
         </Text>
         <Pressable
           onPress={() => refetch()}
@@ -106,26 +112,20 @@ export default function Index() {
     );
   }
 
-  // ── 6. 404 → no profile yet → onboarding ──────────────────────────────────
+  // ── 5. 404 → no profile yet → onboarding ──────────────────────────────────
+  // FIX 5: Previously had a broken if (!profile && !user) branch that called
+  // refetch() during render (side-effect in render = bad) and had no return
+  // statement, causing the component to silently render nothing. Now clean and
+  // unconditional: null profile always → onboarding.
   if (!profile) {
-    refetch();
-    console.log("User: ", user);
-    if (!profile && !user) {
-      refetch();
-      console.log(profile);
-    } else {
-      return <Redirect href="/(onboarding)/step-1" />;
-    }
+    return <Redirect href="/(onboarding)/step-1" />;
   }
 
-  // ── 7. Profile found but selfie not yet approved → verification ────────────
-  if (profile?.verificationStatus !== 'approved') {
+  // ── 6. Profile found but selfie not yet approved → verification ────────────
+  if (profile.verificationStatus !== 'approved') {
     return <Redirect href="/(verification)/selfie" />;
   }
 
-  // ── 8. All checks passed → main app ───────────────────────────────────────
-  else {
-    return <Redirect href="/(tabs)" />;
-  }
-
+  // ── 7. All checks passed → main app ───────────────────────────────────────
+  return <Redirect href="/(tabs)" />;
 }
