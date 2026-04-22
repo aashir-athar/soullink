@@ -15,7 +15,7 @@
     "declarationMap": true,
     "sourceMap": true,
     "verbatimModuleSyntax": false,
-    "exactOptionalPropertyTypes": true,
+    "exactOptionalPropertyTypes": false,
     "noUncheckedIndexedAccess": true,
     "noImplicitOverride": true
   },

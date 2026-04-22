@@ -2,13 +2,9 @@
 // Updated: 2026-04-17 | @clerk/express 2.x, Socket.io 4.8 (connectionStateRecovery)
 
 import type { Server, Socket } from 'socket.io';
-import { createClerkClient } from '@clerk/express';
+import { verifyToken } from '@clerk/express';
 import { User, Message } from './models/index.js';
 import { logger } from './services/logger.js';
-
-const clerk = createClerkClient({
-  secretKey: process.env['CLERK_SECRET_KEY']!,
-});
 
 export function registerSocketHandlers(io: Server): void {
   // ─── Auth middleware ─────────────────────────────────────────────────────────
@@ -17,7 +13,8 @@ export function registerSocketHandlers(io: Server): void {
       const token = socket.handshake.auth?.['token'] as string | undefined;
       if (!token) return next(new Error('No auth token'));
 
-      const payload = await clerk.verifyToken(token, {
+      const payload = await verifyToken(token, {
+        secretKey: process.env['CLERK_SECRET_KEY']!,
         jwtKey: process.env['CLERK_JWT_KEY'],
       });
 

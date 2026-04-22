@@ -65,10 +65,11 @@ app.use(
 
 // ─── Clerk: verify token and populate req.auth() on every request ─────────────
 // clerkMiddleware must run before any route that calls getAuth() or attachUser().
-app.use(clerkMiddleware({
-  secretKey: process.env.CLERK_SECRET_KEY,
-  publishableKey: process.env.CLERK_PUBLISHABLE_KEY
-}));
+const clerkOptions = {
+  ...(process.env.CLERK_SECRET_KEY && { secretKey: process.env.CLERK_SECRET_KEY }),
+  ...(process.env.CLERK_PUBLISHABLE_KEY && { publishableKey: process.env.CLERK_PUBLISHABLE_KEY }),
+};
+app.use(clerkMiddleware(clerkOptions));
 
 // Configure Cloudinary exclusively from environment variables — no hardcoded fallbacks.
 cloudinary.config({

@@ -144,33 +144,34 @@ profileRouter.post('/', async (req: Request, res: Response): Promise<void> => {
     }
 
     // Idempotency: if profile already exists return it
-    const existing = await User.findOne({ clerkId: req.clerkId });
+    const clerkId = req.clerkId as string;
+    const existing = await User.findOne({ clerkId });
     if (existing) {
       res.status(200).json(existing);
       return;
     }
 
     const user = await User.create({
-      clerkId: req.clerkId,
-      email: (email as string) ?? `${req.clerkId}@soullink.app`,
-      fullName,
-      gender,
+      clerkId,
+      email: (email as string) ?? `${clerkId}@soullink.app`,
+      fullName: fullName as string,
+      gender: gender as string,
       dateOfBirth: dob,
       age,
-      city,
-      country,
+      city: city as string,
+      country: country as string,
       religion: (religion as string) ?? 'prefer_not_to_say',
       interests: Array.isArray(interests) ? interests : [],
       lookingFor: Array.isArray(lookingFor) ? lookingFor : [],
       photos: photoArray,
       bio: (bio as string) ?? '',
       occupation: (occupation as string) ?? '',
-      height: (height as number) ?? undefined,
-      educationLevel: (educationLevel as string) ?? undefined,
-      smoking: (smoking as string) ?? undefined,
-      drinking: (drinking as string) ?? undefined,
-      wantKids: (wantKids as string) ?? undefined,
-      personality: (personality as string) ?? undefined,
+      ...(height !== undefined ? { height: height as number } : {}),
+      ...(educationLevel !== undefined ? { educationLevel: educationLevel as string } : {}),
+      ...(smoking !== undefined ? { smoking: smoking as string } : {}),
+      ...(drinking !== undefined ? { drinking: drinking as string } : {}),
+      ...(wantKids !== undefined ? { wantKids: wantKids as string } : {}),
+      ...(personality !== undefined ? { personality: personality as string } : {}),
       verificationStatus: 'not_submitted',
       profileStatus: 'active',
     });
@@ -322,7 +323,7 @@ profileRouter.delete(
   requireUser,
   async (req: Request, res: Response): Promise<void> => {
     try {
-      const publicId = decodeURIComponent(req.params['publicId']!);
+      const publicId = decodeURIComponent(req.params['publicId'] as string);
       try {
         await cloudinary.uploader.destroy(publicId);
       } catch (cloudErr) {

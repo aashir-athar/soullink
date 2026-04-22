@@ -12,7 +12,7 @@ messagesRouter.get(
   requireUser,
   async (req: Request, res: Response): Promise<void> => {
     try {
-      const { matchId } = req.params;
+      const matchId = req.params['matchId'] as string;
       const { page = '1' } = req.query;
       const limit = 40;
       const skip = (parseInt(page as string) - 1) * limit;
@@ -45,7 +45,7 @@ messagesRouter.post(
   requireUser,
   async (req: Request, res: Response): Promise<void> => {
     try {
-      const { matchId } = req.params;
+      const matchId = req.params['matchId'] as string;
       const { content } = req.body as { content?: string };
 
       if (!content?.trim()) {
